@@ -1,12 +1,14 @@
 import pygame
 import random
 
+# Настройка
 WINDOW_SIZE = WINDOW_WIDTH, WINDOW_HEIGHT = 864, 672
 TILE_SIZE = 32
 FPS = 15
 MYEVENTTYPE = pygame.USEREVENT + 1
 
 
+# Лабиринт
 class Labyrint:
     def __init__(self, filename, free_tile, wall_tile):
         self.map = []
@@ -19,6 +21,7 @@ class Labyrint:
         self.free_tile = free_tile
         self.wall_tile = wall_tile
 
+    # Отрисовка лабиринта
     def render(self, screen):
         colors = {'.': pygame.Color('#BAE6FC'), '#': pygame.Color('#FCCE08')}
         for y in range(self.height):
@@ -59,18 +62,16 @@ class Labyrint:
 
 
 class Game:
-    def __init__(self, map, colobok, enemy, coins):
+    def __init__(self, map, colobok, enemy):
         self.map = map
         self.colobok = colobok
         self.enemy = enemy
-        self.coins = coins
 
     def render(self, screen):
         self.map.render(screen)
-        self.coins.render(screen)
+        flour_sprite.draw(screen)
         self.colobok.render(screen)
         self.enemy.render(screen)
-
 
     def update_colobok(self):
         next_x, next_y = self.colobok.get_position()
@@ -113,7 +114,6 @@ class Enemy:
                     (self.x * TILE_SIZE - delta, self.y * TILE_SIZE - delta))
 
 
-
 class Colobok:
     def __init__(self, pic, position):
         self.x, self.y = position
@@ -131,11 +131,12 @@ class Colobok:
                     (self.x * TILE_SIZE - delta, self.y * TILE_SIZE - delta))
 
 
+flour_sprite = pygame.sprite.Group()
+
+
 class FlourCoins:
     def __init__(self, filename, free_tile, wall_tile):
         self.map = []
-        self.rnd_coins = [(random.randint(0, 26), random.randint(0, 20)) for _ in
-               range(40)]
         with open(f'{filename}') as input_file:
             for line in input_file:
                 self.map.append(list(map(str, line.rstrip('\n'))))
@@ -144,21 +145,29 @@ class FlourCoins:
         self.tile_size = TILE_SIZE
         self.free_tile = free_tile
         self.wall_tile = wall_tile
+        self.render()
 
-    def render(self, screen):
-        flour_coins = pygame.image.load('images/flour.png')
-        for x, y in self.rnd_coins:
+    def render(self):
+        image = pygame.image.load("images/flour.png")
+        rnd_pos = []
+        while len(rnd_pos) != 20:
+            x = random.randint(0, 26)
+            y = random.randint(0, 20)
             if self.is_free((x, y)):
-                screen.blit(flour_coins, [x * TILE_SIZE, y * TILE_SIZE])
+                rnd_pos.append((x, y))
+        for i in range(20):
+            flour = pygame.sprite.Sprite(flour_sprite)
+            flour.image = image
+            flour.rect = flour.image.get_rect()
+            flour.rect.x = rnd_pos[i][0] * TILE_SIZE
+            flour.rect.y = rnd_pos[i][1] * TILE_SIZE
+            self.mask = pygame.mask.from_surface(flour.image)
 
     def get_tile_id(self, position):
         return self.map[position[1]][position[0]]
 
     def is_free(self, position):
         return self.get_tile_id(position) in self.free_tile
-
-    def check_collision(self):
-        pass
 
 
 def show_message(screen, message, position, size):
@@ -173,8 +182,12 @@ def main_window():
     pygame.display.set_caption('Колобок')
     icon = pygame.image.load('images/colobok.png')
     pygame.display.set_icon(icon)
+
     background_img = pygame.image.load('images/background-img.png')
     keyboard_img = pygame.image.load('images/keyboard.png')
+    pygame.mixer.music.load('sounds/main_music.mp3')
+    pygame.mixer.music.set_volume(0.5)
+    pygame.mixer.music.play(loops=-1)
 
     clock = pygame.time.Clock()
 
@@ -185,6 +198,7 @@ def main_window():
                 running = False
             if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
                 running = False
+                pygame.mixer.music.stop()
                 game_window()
         screen.blit(background_img, [0, 0])
         screen.blit(keyboard_img, [0, 550])
@@ -199,17 +213,23 @@ def main_window():
 
 def game_window():
     pygame.init()
-    screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT + 50))
+    screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
     pygame.display.set_caption('Колобок')
     icon = pygame.image.load('images/colobok.png')
     pygame.display.set_icon(icon)
 
+    pygame.mixer.music.load('sounds/colobok.mp3')
+    pygame.mixer.music.set_volume(0.5)
+    pygame.mixer.music.play(loops=1)
+    pygame.mixer.music.queue('sounds/main_music.mp3')
+
     labyrint = Labyrint("map.txt", '.', '#')
     colobok = Colobok("colobok.png", (13, 15))
     enemy = Enemy("enemy.png", (13, 9))
-    flour = FlourCoins("map.txt", '.', '#')
-    game = Game(labyrint, colobok, enemy, flour)
+    flour_coins = FlourCoins('map.txt', '.', '#')
+    game = Game(labyrint, colobok, enemy)
 
+    score = 0
     clock = pygame.time.Clock()
     running = True
     game_over = False
@@ -222,9 +242,12 @@ def game_window():
                 game.move_enemy()
         if not game_over:
             game.update_colobok()
+            score += 1
         screen.fill(pygame.Color('#BAE6FC'))
         game.render(screen)
+        show_message(screen, f'Очков: {score}', (0, 0), 25)
         if game.check_lose():
+            pygame.mixer.music.stop()
             game_over = True
             show_message(screen, 'Съеден', (320, 300), 50)
         pygame.display.flip()
