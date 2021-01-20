@@ -69,7 +69,6 @@ class Game:
 
     def render(self, screen):
         self.map.render(screen)
-        flour_sprite.draw(screen)
         self.colobok.render(screen)
         self.enemy.render(screen)
 
@@ -98,7 +97,7 @@ class Game:
 class Enemy:
     def __init__(self, pic, position):
         self.x, self.y = position
-        self.delay = 100
+        self.delay = 120
         pygame.time.set_timer(MYEVENTTYPE, self.delay)
         self.image = pygame.image.load(f"images/{pic}")
 
@@ -131,45 +130,6 @@ class Colobok:
                     (self.x * TILE_SIZE - delta, self.y * TILE_SIZE - delta))
 
 
-flour_sprite = pygame.sprite.Group()
-
-
-class FlourCoins:
-    def __init__(self, filename, free_tile, wall_tile):
-        self.map = []
-        with open(f'{filename}') as input_file:
-            for line in input_file:
-                self.map.append(list(map(str, line.rstrip('\n'))))
-        self.height = len(self.map)
-        self.width = len(self.map[0])
-        self.tile_size = TILE_SIZE
-        self.free_tile = free_tile
-        self.wall_tile = wall_tile
-        self.render()
-
-    def render(self):
-        image = pygame.image.load("images/flour.png")
-        rnd_pos = []
-        while len(rnd_pos) != 20:
-            x = random.randint(0, 26)
-            y = random.randint(0, 20)
-            if self.is_free((x, y)):
-                rnd_pos.append((x, y))
-        for i in range(20):
-            flour = pygame.sprite.Sprite(flour_sprite)
-            flour.image = image
-            flour.rect = flour.image.get_rect()
-            flour.rect.x = rnd_pos[i][0] * TILE_SIZE
-            flour.rect.y = rnd_pos[i][1] * TILE_SIZE
-            self.mask = pygame.mask.from_surface(flour.image)
-
-    def get_tile_id(self, position):
-        return self.map[position[1]][position[0]]
-
-    def is_free(self, position):
-        return self.get_tile_id(position) in self.free_tile
-
-
 def show_message(screen, message, position, size):
     font = pygame.font.Font('font/elizabeta-modern.ttf', size)
     text = font.render(message, 1, (251, 2, 3))
@@ -199,7 +159,6 @@ def main_window():
             if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
                 running = False
                 pygame.mixer.music.stop()
-                game_window()
         screen.blit(background_img, [0, 0])
         screen.blit(keyboard_img, [0, 550])
         show_message(screen, 'Нажмите пробел, чтобы начать играть', (50, 10),
@@ -208,7 +167,7 @@ def main_window():
                      30)
         pygame.display.flip()
         clock.tick(FPS)
-    pygame.quit()
+    game_window()
 
 
 def game_window():
@@ -226,7 +185,7 @@ def game_window():
     labyrint = Labyrint("map.txt", '.', '#')
     colobok = Colobok("colobok.png", (13, 15))
     enemy = Enemy("enemy.png", (13, 9))
-    flour_coins = FlourCoins('map.txt', '.', '#')
+
     game = Game(labyrint, colobok, enemy)
 
     score = 0
@@ -240,6 +199,9 @@ def game_window():
                 running = False
             if event.type == MYEVENTTYPE and not game_over:
                 game.move_enemy()
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_r \
+                    and game_over:
+                game_window()
         if not game_over:
             game.update_colobok()
             score += 1
@@ -250,6 +212,7 @@ def game_window():
             pygame.mixer.music.stop()
             game_over = True
             show_message(screen, 'Съеден', (320, 300), 50)
+            show_message(screen, 'Для рестарта нажмите R', (220, 370), 25)
         pygame.display.flip()
         clock.tick(FPS)
 
