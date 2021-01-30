@@ -30,12 +30,15 @@ class Labyrint:
                                    self.tile_size, self.tile_size)
                 screen.fill(colors[self.get_tile_id((x, y))], rect)
 
+    # Вернуть айди элемента карты
     def get_tile_id(self, position):
         return self.map[position[1]][position[0]]
 
+    # Проверка на свободность участка
     def is_free(self, position):
         return self.get_tile_id(position) in self.free_tile
 
+    # Построение короткого маршрута
     def find_path_step(self, start, target):
         INF = 1000
         x, y = start
@@ -61,17 +64,20 @@ class Labyrint:
         return x, y
 
 
+# Класс игры
 class Game:
     def __init__(self, map, colobok, enemy):
         self.map = map
         self.colobok = colobok
         self.enemy = enemy
 
+    # Отрисовка всей игры
     def render(self, screen):
         self.map.render(screen)
         self.colobok.render(screen)
         self.enemy.render(screen)
 
+    # Обновление игрока
     def update_colobok(self):
         next_x, next_y = self.colobok.get_position()
         if pygame.key.get_pressed()[pygame.K_LEFT]:
@@ -85,15 +91,18 @@ class Game:
         if self.map.is_free((next_x, next_y)):
             self.colobok.set_position((next_x, next_y))
 
+    # Перемещение врага
     def move_enemy(self):
         next_position = self.map.find_path_step(self.enemy.get_position(),
                                                 self.colobok.get_position())
         self.enemy.set_position(next_position)
 
+    # Проверка проигрыша
     def check_lose(self):
         return self.colobok.get_position() == self.enemy.get_position()
 
 
+# Враг
 class Enemy:
     def __init__(self, pic, position):
         self.x, self.y = position
@@ -101,41 +110,50 @@ class Enemy:
         pygame.time.set_timer(MYEVENTTYPE, self.delay)
         self.image = pygame.image.load(f"images/{pic}")
 
+    # Вернуть позицию врага
     def get_position(self):
         return self.x, self.y
 
+    # Переместить врага
     def set_position(self, position):
         self.x, self.y = position
 
+    # Отрисовка врага
     def render(self, screen):
         delta = (self.image.get_width() - TILE_SIZE) // 2
         screen.blit(self.image,
                     (self.x * TILE_SIZE - delta, self.y * TILE_SIZE - delta))
 
 
+# Игрок
 class Colobok:
     def __init__(self, pic, position):
         self.x, self.y = position
         self.image = pygame.image.load(f"images/{pic}")
 
+    # Вернуть позицию игрока
     def get_position(self):
         return self.x, self.y
 
+    # Переместить врага
     def set_position(self, position):
         self.x, self.y = position
 
+    # Отрисовка игрока
     def render(self, screen):
         delta = (self.image.get_width() - TILE_SIZE) // 2
         screen.blit(self.image,
                     (self.x * TILE_SIZE - delta, self.y * TILE_SIZE - delta))
 
 
+# Показать сообщение
 def show_message(screen, message, position, size):
     font = pygame.font.Font('font/elizabeta-modern.ttf', size)
     text = font.render(message, 1, (251, 2, 3))
     screen.blit(text, position)
 
 
+# Гланое окно игры
 def main_window():
     pygame.init()
     screen = pygame.display.set_mode(WINDOW_SIZE)
@@ -158,6 +176,7 @@ def main_window():
                 running = False
             if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
                 running = False
+                game_window()
                 pygame.mixer.music.stop()
         screen.blit(background_img, [0, 0])
         screen.blit(keyboard_img, [0, 550])
@@ -167,9 +186,9 @@ def main_window():
                      30)
         pygame.display.flip()
         clock.tick(FPS)
-    game_window()
 
 
+# Окно игры
 def game_window():
     pygame.init()
     screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
@@ -185,7 +204,6 @@ def game_window():
     labyrint = Labyrint("map.txt", '.', '#')
     colobok = Colobok("colobok.png", (13, 15))
     enemy = Enemy("enemy.png", (13, 9))
-
     game = Game(labyrint, colobok, enemy)
 
     score = 0
