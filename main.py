@@ -1,5 +1,4 @@
 import pygame
-import random
 
 # Настройка
 WINDOW_SIZE = WINDOW_WIDTH, WINDOW_HEIGHT = 864, 672
